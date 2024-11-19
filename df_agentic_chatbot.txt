@@ -1,0 +1,14 @@
+pip install -r requirements.txt
+
+file structure
+.env
+index,html
+main.py
+large.jpg
+medium.jpg
+small.jpg
+xlarge.jpg
+requirements.txt
+
+uvicorn main:app --reload
+open index.html by clicking on it.

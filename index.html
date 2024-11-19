@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agentic Chatbot</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: white;
+            color: white;
+            transition: background-color 0.3s, color 0.3s;
+            background-image: url('small.jpg');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+        }
+        @media (min-width: 641px) {
+            body {
+                background-image: url('medium.jpg');
+            }
+        }
+        @media (min-width: 1025px) {
+            body {
+                background-image: url('large.jpg');
+            }
+        }
+        @media (min-width: 1367px) {
+            body {
+                background-image: url('xlarge.jpg');
+            }
+        }
+        h1 {
+            text-align: center;
+        }
+        #file-upload, #question-input {
+            margin-bottom: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+        }
+        #chat-history {
+            border: 1px solid #ccc;
+            padding: 10px;
+            height: 300px;
+            overflow-y: auto;
+            background-color: rgba(249, 249, 249, 0.8);
+            transition: background-color 0.3s;
+        }
+        .user-message {
+            background-color: rgba(240, 240, 240, 0.8);
+            padding: 5px;
+            margin-bottom: 5px;
+            border-radius: 5px;
+            color: #333333;
+        }
+        .bot-message {
+            background-color: rgba(230, 243, 255, 0.8);
+            color: #0066cc;
+            padding: 5px;
+            margin-bottom: 5px;
+            border-radius: 5px;
+        }
+        #question {
+            width: 70%;
+            padding: 10px;
+            font-size: 16px;
+        }
+        #ask-button {
+            width: 25%;
+            padding: 10px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        #dark-mode-toggle {
+            margin-bottom: 20px;
+            cursor: pointer;
+        }
+
+        /* File input styling */
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+            width: 32%;
+        }
+        .file-input-wrapper input[type=file] {
+            font-size: 100px;
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+        .file-input-wrapper .btn-file-input {
+            background-color: #4a90e2;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            display: inline-block;
+            width: 100%;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        #upload-button, #refresh-button {
+            background-color: #4a90e2;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            width: 32%;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        #file-name {
+            margin-top: 10px;
+            width: 100%;
+            text-align: left;
+            font-style: italic;
+        }
+
+        /* Dark theme styles */
+        body.dark-mode {
+            background-color: rgba(18, 18, 18, 0.7);
+            background-blend-mode: overlay;
+            color: #ffffff;
+        }
+        .dark-mode #chat-history {
+            background-color: rgba(51, 51, 51, 0.8);
+            border-color: #555;
+        }
+        .dark-mode .user-message {
+            background-color: rgba(68, 68, 68, 0.8);
+            color: #ffffff;
+        }
+        .dark-mode .bot-message {
+            background-color: rgba(26, 61, 102, 0.8);
+            color: #99ccff;
+        }
+        .dark-mode #ask-button {
+            background-color: #4a90e2;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <h1>DataFrame Agentic Chatbot</h1>
+
+    <!-- Dark mode toggle button -->
+    <div id="dark-mode-toggle">
+        <label for="toggle">Dark Mode:</label>
+        <input type="checkbox" id="toggle" onclick="toggleDarkMode()">
+    </div>
+
+    <div id="file-upload">
+        <div class="file-input-wrapper">
+            <button class="btn-file-input">Choose File</button>
+            <input type="file" id="file-input" accept=".csv,.xlsx,.xls" onchange="updateFileName()">
+        </div>
+        <button id="upload-button" onclick="uploadFile()">Connect with LLM</button>
+        <button id="refresh-button" onclick="refreshChat()">Refresh Chat</button>
+        <div id="file-name"></div>
+    </div>
+
+    <div id="question-input">
+        <input type="text" id="question" placeholder="Ask a question about the data">
+        <button id="ask-button" onclick="askQuestion()">Ask</button>
+    </div>
+
+    <div id="chat-history"></div>
+
+    <script>
+        // Dark mode toggle function
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+        }
+
+        function updateFileName() {
+            const fileInput = document.getElementById('file-input');
+            const fileName = document.getElementById('file-name');
+            if (fileInput.files.length > 0) {
+                fileName.textContent = `Selected file: ${fileInput.files[0].name}`;
+            } else {
+                fileName.textContent = '';
+            }
+        }
+
+        function refreshChat() {
+            const chatHistory = document.getElementById('chat-history');
+            chatHistory.innerHTML = '';
+        }
+
+        async function uploadFile() {
+            const fileInput = document.getElementById('file-input');
+            const file = fileInput.files[0];
+            if (!file) {
+                alert('Please select a file');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch('http://localhost:8000/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await response.json();
+                alert(result.message);
+                refreshChat(); // Automatically clear chat history when new file is uploaded
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred while uploading the file');
+            }
+        }
+
+        async function askQuestion() {
+            const questionInput = document.getElementById('question');
+            const question = questionInput.value;
+            if (!question) {
+                alert('Please enter a question');
+                return;
+            }
+
+            try {
+                const response = await fetch('http://localhost:8000/ask', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ question: question })
+                });
+                const result = await response.json();
+                displayMessage('😊', question);
+                displayMessage('🤖', result.response);
+                questionInput.value = '';
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred while asking the question');
+            }
+        }
+
+        function displayMessage(sender, message) {
+            const chatHistory = document.getElementById('chat-history');
+            const messageElement = document.createElement('div');
+            messageElement.className = sender === '😊' ? 'user-message' : 'bot-message';
+            messageElement.innerHTML = `<strong>${sender}:</strong> ${message}`;
+            chatHistory.appendChild(messageElement);
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+        }
+
+        // Add event listener for Enter key
+        document.getElementById('question').addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                askQuestion();
+            }
+        });
+
+        // Add touch event listener for mobile devices
+        document.getElementById('ask-button').addEventListener('touchstart', function(event) {
+            event.preventDefault();
+            askQuestion();
+        });
+    </script>
+</body>
+</html>
